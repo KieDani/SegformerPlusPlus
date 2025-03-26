@@ -20,3 +20,14 @@ pip install .
 ```
 
 **Step 3.** [Run the SegFormer++](../run/run_mmeng.md)
+
+
+
+**Troubleshooting**
+There might be installation troubles with openmim, mmengine, and mmcv for new python versions. Thus, Step 1 might not work correctly. 
+In this case, try the following alternative for step 1:
+```shell
+pip install torch torchvision numpy
+pip install mmcv-full==1.2.7
+pip install mmcv
+```
