@@ -31,3 +31,4 @@ pip install torch torchvision numpy
 pip install mmcv-full==1.2.7
 pip install mmcv
 ```
+If it is still not working, make sure to use a pip virtual environment (python -m venv "name of the environment"), not a conda environment.
