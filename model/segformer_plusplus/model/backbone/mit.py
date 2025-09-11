@@ -1,20 +1,18 @@
 # Copyright (c) OpenMMLab. All rights reserved.
 import math
-
 import torch
 import torch.nn as nn
 import torch.utils.checkpoint as cp
-from mmcv.cnn import Conv2d, build_activation_layer, build_norm_layer
-from mmcv.cnn.bricks.drop import build_dropout
-from mmcv.cnn.bricks.transformer import MultiheadAttention
-from mmengine.model import BaseModule, ModuleList, Sequential
-from mmengine.model.weight_init import (constant_init, normal_init,
-                                        trunc_normal_init)
 from tomesd.merge import bipartite_soft_matching_random2d
 
 from ...utils import PatchEmbed
 from ...utils import nchw_to_nlc, nlc_to_nchw
 from ...utils import MODELS
+from ...utils import Conv2d, build_activation_layer, build_norm_layer, build_dropout
+from ..base_module import BaseModule, MultiheadAttention, ModuleList, Sequential
+from ..weight_init import (constant_init, normal_init,
+                                        trunc_normal_init)
+
 
 class MixFFN(BaseModule):
     """An implementation of MixFFN of Segformer.

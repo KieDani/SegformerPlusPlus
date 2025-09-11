@@ -1,4 +1,4 @@
-from mmengine import Registry
+from ..Registry.registry import Registry
 
 MODELS = Registry(
     'models',
