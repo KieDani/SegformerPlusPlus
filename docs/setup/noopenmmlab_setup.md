@@ -8,7 +8,7 @@
 **Step 1.** Install Segformer++
 
 ```shell
-cd model
+cd model_without_OpenMMLab
 pip install .
 ```
 
