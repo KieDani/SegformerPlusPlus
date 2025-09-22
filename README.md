@@ -73,7 +73,7 @@ To use our models for semantic segmentation or 2D human pose estimation, please 
 - [Use the SegFormer++ with MMSegmentation](docs/setup/mmseg_setup.md)
 - [Use the SegFormer++ with MMPose](docs/setup/mmpose_setup.md)
 - [Use the SegFormer++ without MMSegmentation/MMPose](docs/setup/mmeng_setup.md)
-- [Use the SegFormer++ without OpenMMLab](docs/setup/mmeng_setup.md)
+- [Use the SegFormer++ without OpenMMLab](docs/setup/noopenmmlab_setup.md)
 - [Token Merging Settings](docs/run/token_merging.md)
 
 ## Citation
