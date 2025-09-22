@@ -1,4 +1,4 @@
-# Install the SegFormer++ without MMSegmentation/MMPose
+# Install the SegFormer++ without OpenMMLab
 
 **Step 0.** Prerequisites
 
@@ -12,4 +12,4 @@ cd model_without_OpenMMLab
 pip install .
 ```
 
-**Step 2.** [Run the SegFormer++](../run/run_mmeng.md)
+**Step 2.** [Run the SegFormer++](../run/run_noopenmmlab.md)
