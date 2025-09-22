@@ -6,7 +6,6 @@
 
 import time
 from typing import Tuple
-
 import torch
 from tqdm import tqdm
 
@@ -37,6 +36,7 @@ def benchmark(
     Returns:
      - the throughput measured in images / second
     """
+    
     if not isinstance(device, torch.device):
         device = torch.device(device)
     is_cuda = torch.device(device).type == "cuda"

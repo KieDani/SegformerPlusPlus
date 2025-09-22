@@ -1,11 +1,11 @@
 # Copyright (c) OpenMMLab. All rights reserved.
 import torch
 import torch.nn as nn
-from mmcv.cnn import ConvModule
-from mmengine.model import BaseModule
 
 from ...utils import MODELS
 from ...utils import resize
+from ..base_module import BaseModule
+from ...utils.activation import ConvModule
 
 
 @MODELS.register_module()
@@ -18,6 +18,10 @@ class SegformerHead(BaseModule):
     Args:
         interpolate_mode: The interpolate mode of MLP head upsample operation.
             Default: 'bilinear'.
+        use_conv_bias_in_convmodules (bool | str): If True, ConvModules will use bias.
+            If False, they won't. If 'auto', they follow ConvModule's default.
+            This is added for compatibility with models trained with no conv bias
+            when followed by BatchNorm, while keeping default local behavior.
     """
 
     def __init__(self,
@@ -28,7 +32,9 @@ class SegformerHead(BaseModule):
                  out_channels=19,
                  norm_cfg=None,
                  align_corners=False,
-                 interpolate_mode='bilinear'):
+                 interpolate_mode='bilinear',
+                 use_conv_bias_in_convmodules: bool | str = 'auto'
+                 ):
         super().__init__()
 
         self.in_channels = in_channels
@@ -39,6 +45,7 @@ class SegformerHead(BaseModule):
         self.norm_cfg = norm_cfg
         self.align_corners = align_corners
         self.interpolate_mode = interpolate_mode
+        self.use_conv_bias_in_convmodules = use_conv_bias_in_convmodules # Speichern des neuen Parameters
 
         self.act_cfg = dict(type='ReLU')
         self.conv_seg = nn.Conv2d(channels, self.out_channels, kernel_size=1)
@@ -49,7 +56,15 @@ class SegformerHead(BaseModule):
 
         num_inputs = len(self.in_channels)
 
-        assert num_inputs == len(self.in_index)
+        conv_module_bias_setting = use_conv_bias_in_convmodules
+        if use_conv_bias_in_convmodules == 'auto':
+            pass
+        elif isinstance(use_conv_bias_in_convmodules, bool):
+            # Wenn True/False explizit übergeben wird, verwenden wir das
+            conv_module_bias_setting = use_conv_bias_in_convmodules
+        else:
+            raise ValueError("use_conv_bias_in_convmodules must be 'auto', True, or False")
+
 
         self.convs = nn.ModuleList()
         for i in range(num_inputs):
@@ -60,13 +75,17 @@ class SegformerHead(BaseModule):
                     kernel_size=1,
                     stride=1,
                     norm_cfg=self.norm_cfg,
-                    act_cfg=self.act_cfg))
+                    act_cfg=self.act_cfg,
+                    bias=conv_module_bias_setting # Verwende den bestimmten Bias-Wert
+                ))
 
         self.fusion_conv = ConvModule(
             in_channels=self.channels * num_inputs,
             out_channels=self.channels,
             kernel_size=1,
-            norm_cfg=self.norm_cfg)
+            norm_cfg=self.norm_cfg,
+            bias=conv_module_bias_setting # Verwende den bestimmten Bias-Wert
+        )
 
     def cls_seg(self, feat):
         """Classify each pixel."""

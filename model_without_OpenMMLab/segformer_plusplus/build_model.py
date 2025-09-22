@@ -1,11 +1,10 @@
 import os
 
-from mmengine import registry
-from mmengine.config import Config
-from mmengine.model import BaseModule
-
 from .utils import MODELS, imagenet_weights
 from .utils import tome_presets
+from .model.base_module import BaseModule
+from .configs.config.config import Config
+from .utils.build_functions import build_model_from_cfg
 
 
 class SegFormer(BaseModule):
@@ -26,8 +25,8 @@ class SegFormer(BaseModule):
 
         """
         super().__init__()
-        self.backbone = registry.build_model_from_cfg(cfg.backbone, registry=MODELS)
-        self.decode_head = registry.build_model_from_cfg(cfg.decode_head, registry=MODELS)
+        self.backbone = build_model_from_cfg(cfg.backbone, registry=MODELS)
+        self.decode_head = build_model_from_cfg(cfg.decode_head, registry=MODELS)
 
     def forward(self, x):
         """
