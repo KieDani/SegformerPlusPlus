@@ -1,46 +1,73 @@
-# Use the SegFormer++ outside MMSegmentation/MMPose
+# Use the SegFormer++ without OpenMMLab:
 
 ## How to build and use a Model
 
-- Use [build_model.py](../../model/segformer/build_model.py) to build preset and custom SegFormer++ models
+- Use [build_model.py](../../model_without_OpenMMLab/segformer_plusplus/build_model.py) to build preset and custom SegFormer++ models
 
+Navigate to model_without_OpenMMLab/segformer_plusplus.
 ```python
+from .build_model import create_model
+# backbone: choose from ['b0', 'b1', 'b2', 'b3', 'b4', 'b5']
+# head: choose from ['bsm_hq', 'bsm_fast', 'n2d_2x2']
 model = create_model('b5', 'bsm_hq', pretrained=True)
 ```
 Running this code snippet yields our SegFormer++<sub>HQ</sub> model pretrained on ImageNet.
 
-- Use [random_benchmark.py](../../model/segformer/random_benchmark.py) to evaluate a model in terms of FPS
+- Use [random_benchmark.py](../../model_without_OpenMMLab/segformer_plusplus/random_benchmark.py) to evaluate a model in terms of FPS
 
 ```python
+from random_benchmark import random_benchmark
 v = random_benchmark(model)
 ```
 Calculate the FPS using our script.
 
-## How to execute the benchmark via scripts
+## How to Load a Checkpoint provided by us
 
-- Use [start_random_benchmark.py](../../model/segformer/start_random_benchmark.py) to evaluate a model with random input in terms of FPS:
-
-```bash
-python3 -m segformer_plusplus.start_random_benchmark
+[Checkpoints](../../README.md) are found on the Readme of this Repo.
+A Checkpoint can be loaded and then directly integrated into the model via torch:
+```python
+checkpoint = torch.load(checkpoint_path)
+model.load_state_dict(checkpoint)
 ```
-  
-- Use [start_cityscape_benchmark.py](../../model/segformer/start_cityscape_benchmark.py) to evaluate a model with a cityscape-picture as input in terms of FPS and output:
+An Example can be found in [start_cityscape_benchmark.py](../../model_without_OpenMMLab/segformer_plusplus/start_cityscape_benchmark.py)
 
-```bash
-python3 -m segformer_plusplus.start_cityscape_benchmark --backbone <BACKBONE_VERSION> --head <HEAD_TYPE> --checkpoint <PATH_TO_CHECKPOINT>
+## How to prepare a Image before running it with the model
+
+Images can be imported via PIL and then converted into RGB like this:
+
+```python
+from PIL import Image
+image = Image.open(image-path).convert("RGB")
 ```
 
-The parameters can take the following values:
+After that we can transform the image into a torch-Tensor and calculate Mean and STD:
 
---backbone: Model backbone version. Possible values: 'b0', 'b1', 'b2', 'b3', 'b4', 'b5'. Default is 'b5'.
-
---head: Model head type. Possible values: 'bsm_hq', 'bsm_fast', 'n2d_2x2'. Default is 'bsm_hq'.
-
---checkpoint: Path to a .pth checkpoint file (optional). If not provided, the script may use the model pretrained on ImageNet.
-
-For example it can look like this:
-
-```bash
-python3 -m segformer_plusplus.start_cityscape_benchmark --backbone b5 --head bsm_hq --checkpoint segformer_b5_cityscapes_hq.pth
+```python
+import torchvision.transforms as T
+img_tensor = T.ToTensor()(image)
+mean = img_tensor.mean(dim=(1, 2))
+std = img_tensor.std(dim=(1, 2))
 ```
+
+Now the Tensor of the Image can be transformed:
+
+```python
+transform = T.Compose([
+        T.Resize((image_size[0][1], image_size[0][2])), #image_size as wished
+        T.ToTensor(),
+        T.Normalize(mean=mean.tolist(),
+                    std=std.tolist())
+    ])
+img_tensor = transform(image).unsqueeze(0).to(device)
+```
+
+The Checkpoints were trained with normalisation of the given Dataset. For precise results use them instead of calculating individualy. Now the Image can be run trough the model:
+
+```python
+output = model(img_tensor)
+```
+
+## Token-Merge Setting
+
+For information to the settings for the Token Merging look [here](../../docs/run/token_merging.md).
 
