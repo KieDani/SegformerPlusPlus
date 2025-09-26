@@ -9,9 +9,8 @@ from PIL import Image
 print("Loading SegFormer++ Model...")
 # Replace 'your_username/your_repo' with the actual path to your repository
 model = torch.hub.load(
-    './',  # This is a placeholder, replace it with your actual GitHub path
+    'KieDani/SegformerPlusPlus',
     'segformer_plusplus',
-    source='local',
     pretrained=True,
     backbone='b5',
     tome_strategy='bsm_hq',
@@ -24,9 +23,8 @@ print("Model loaded successfully.")
 # Load the data transformations via the 'data_transforms' entry point.
 print("Loading data transformations...")
 transform = torch.hub.load(
-    './',  # Placeholder, replace it with your actual GitHub path
+    'KieDani/SegformerPlusPlus',
     'data_transforms',
-    source='local',
 )
 print("Transformations loaded successfully.")
 

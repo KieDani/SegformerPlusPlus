@@ -70,12 +70,16 @@ The weights of the Segformer (Original) model were used to get the inference res
 
 ## Usage
 
-To use our models for semantic segmentation or 2D human pose estimation, please follow the installation instructions for MMSegmentation and MMPose respectively, which can be found in the documentation of the respective repositories.
+Easy usage:
+- [Use the SegFormer++ via TorchHub](docs/setup/torchhub_setup.md)
+- [Use the SegFormer++ without OpenMMLab](docs/setup/noopenmmlab_setup.md)
 
+Legacy Variants. To use our models for semantic segmentation or 2D human pose estimation, please follow the installation instructions for MMSegmentation and MMPose respectively, which can be found in the documentation of the respective repositories.
 - [Use the SegFormer++ with MMSegmentation](docs/setup/mmseg_setup.md)
 - [Use the SegFormer++ with MMPose](docs/setup/mmpose_setup.md)
 - [Use the SegFormer++ without MMSegmentation/MMPose](docs/setup/mmeng_setup.md)
-- [Use the SegFormer++ without OpenMMLab](docs/setup/noopenmmlab_setup.md)
+
+Explanation of the different token merging strategies:
 - [Token Merging Settings](docs/run/token_merging.md)
 
 ## Citation
