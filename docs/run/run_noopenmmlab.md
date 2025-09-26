@@ -9,7 +9,8 @@ Navigate to model_without_OpenMMLab.
 from segformer_plusplus.build_model import create_model
 # backbone: choose from ['b0', 'b1', 'b2', 'b3', 'b4', 'b5']
 # head: choose from ['bsm_hq', 'bsm_fast', 'n2d_2x2']
-model = create_model('b5', 'bsm_hq', pretrained=True)
+out_channels = 19  # number of classes, e.g. 19 for cityscapes
+model = create_model('b5', 'bsm_hq', out_channels=out_channels, pretrained=True)
 ```
 Running this code snippet yields our SegFormer++<sub>HQ</sub> model pretrained on ImageNet.
 
@@ -27,6 +28,7 @@ Calculate the FPS using our script.
 They can be loaded and integrated into the model via PyTorch:
 ```python
 import torch
+checkpoint_path = "path_to_your_checkpoint.pth that you downloaded (links in Readme)"
 checkpoint = torch.load(checkpoint_path)
 model.load_state_dict(checkpoint)
 ```
@@ -38,6 +40,7 @@ Images can be imported via PIL and then converted into RGB:
 
 ```python
 from PIL import Image
+image_path = "path_to_your_image.jpg"
 image = Image.open(image_path).convert("RGB")
 ```
 
