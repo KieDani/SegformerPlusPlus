@@ -8,7 +8,7 @@ Navigate to model_without_OpenMMLab.
 ```python
 from segformer_plusplus.build_model import create_model
 # backbone: choose from ['b0', 'b1', 'b2', 'b3', 'b4', 'b5']
-# head: choose from ['bsm_hq', 'bsm_fast', 'n2d_2x2']
+# tome_strategy: choose from ['bsm_hq', 'bsm_fast', 'n2d_2x2']
 out_channels = 19  # number of classes, e.g. 19 for cityscapes
 model = create_model('b5', 'bsm_hq', out_channels=out_channels, pretrained=True)
 ```
