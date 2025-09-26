@@ -6,7 +6,7 @@
 
 Navigate to model_without_OpenMMLab.
 ```python
-from segfromer_plusplus.build_model import create_model
+from segformer_plusplus.build_model import create_model
 # backbone: choose from ['b0', 'b1', 'b2', 'b3', 'b4', 'b5']
 # head: choose from ['bsm_hq', 'bsm_fast', 'n2d_2x2']
 model = create_model('b5', 'bsm_hq', pretrained=True)
@@ -16,7 +16,7 @@ Running this code snippet yields our SegFormer++<sub>HQ</sub> model pretrained o
 - Use [random_benchmark.py](../../model_without_OpenMMLab/segformer_plusplus/random_benchmark.py) to evaluate a model in terms of FPS
 
 ```python
-from segfromer_plusplus.random_benchmark import random_benchmark
+from segformer_plusplus.random_benchmark import random_benchmark
 v = random_benchmark(model)
 ```
 Calculate the FPS using our script.
