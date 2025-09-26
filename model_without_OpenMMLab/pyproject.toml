@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=61.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "segformer_plusplus"
+version = "0.2"
+authors = [
+    {name = "Marco Kantonis"},
+]
+description = "Segformer++: Efficient Token-Merging Strategies for High-Resolution Semantic Segmentation"
+license = {text = "MIT"}
+
+# Entspricht long_description
+readme = "README.md" # Gehen wir davon aus, dass Sie eine README.md verwenden.
+                    # Wenn Sie den Link aus der setup.py übernehmen möchten,
+                    # nutzen Sie die Sektion [project.urls] (siehe unten).
+
+# Entspricht install_requires
+dependencies = [
+    "torch>=2.0.1",
+    "tomesd",
+    "omegaconf",
+    "pyyaml",
+    "numpy",
+    "rich",
+    "yapf",
+    "addict",
+    "tqdm",
+    "packaging",
+    "Pillow",
+    "torchvision",
+]
+
+# Setuptools wird hier die Pakete automatisch finden (entspricht find_packages())
+# Solange keine packages/py_modules gesetzt sind, nutzt setuptools die automatische Paketerkennung.
+
+# Optional: Zusätzliche URLs, wenn Sie den arXiv-Link beibehalten möchten
+[project.urls]
+Documentation = "https://arxiv.org/abs/2405.14467"
