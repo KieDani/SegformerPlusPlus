@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "segformer_plusplus"
 version = "0.2"
 authors = [
-    {name = "Marco Kantonis"},
+    {name = "Daniel Kienzle"},
 ]
 description = "Segformer++: Efficient Token-Merging Strategies for High-Resolution Semantic Segmentation"
 license = {text = "MIT"}
