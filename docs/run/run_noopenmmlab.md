@@ -46,28 +46,66 @@ After that we can transform the image into a torch-Tensor and calculate Mean and
 ```python
 import torchvision.transforms as T
 img_tensor = T.ToTensor()(image)
-mean = img_tensor.mean(dim=(1, 2))
-std = img_tensor.std(dim=(1, 2))
+mean = [0.485, 0.456, 0.406]  # ImageNet mean
+std = [0.229, 0.224, 0.225]  # ImageNet std
 ```
 
 Now the Tensor of the Image can be transformed:
 
 ```python
+device = 'cuda:0'
+resolution = (1024, 1024)  # image_size as wished
 transform = T.Compose([
-        T.Resize((image_size[0][1], image_size[0][2])), #image_size as wished
-        T.ToTensor(),
-        T.Normalize(mean=mean.tolist(),
-                    std=std.tolist())
-    ])
+T.Resize(resolution),
+T.ToTensor(),
+T.Normalize(mean=mean, std=std)
+])
 img_tensor = transform(image).unsqueeze(0).to(device)
 ```
 
-> **Note:** The provided checkpoints were trained with normalization of the dataset. 
-> For precise results, use the dataset's mean and standard deviation instead of calculating per-image values.
+```python
+output = model(img_tensor).squeeze(0)
+```
+
+Visualize the results (this is for cityscapes classes):
 
 ```python
-output = model(img_tensor)
+import numpy as np
+import matplotlib.pyplot as plt
+segmentation_map = np.argmax(model_output.cpu().numpy(), axis=0)
+# Official Cityscapes colors for train IDs 0-18
+cityscapes_colors = np.array([
+    [128,  64, 128], # 0: road
+    [244,  35, 232], # 1: sidewalk
+    [ 70,  70,  70], # 2: building
+    [102, 102, 156], # 3: wall
+    [190, 153, 153], # 4: fence
+    [153, 153, 153], # 5: pole
+    [250, 170,  30], # 6: traffic light
+    [220, 220,   0], # 7: traffic sign
+    [107, 142,  35], # 8: vegetation
+    [152, 251, 152], # 9: terrain
+    [ 70, 130, 180], # 10: sky
+    [220,  20,  60], # 11: person
+    [255,   0,   0], # 12: rider
+    [  0,   0, 142], # 13: car
+    [  0,   0,  70], # 14: truck
+    [  0,  60, 100], # 15: bus
+    [  0,  80, 100], # 16: train
+    [  0,   0, 230], # 17: motorcycle
+    [119,  11,  32], # 18: bicycle
+], dtype=np.uint8)
+
+color_image = cityscapes_colors[segmentation_map]
+
+plt.figure(figsize=(6, 6))
+plt.imshow(color_image)
+plt.title("Semantic Segmentation Visualization")
+plt.axis('off')
+plt.show()
 ```
+
+
 
 ## Token-Merge Setting
 
