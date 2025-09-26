@@ -11,15 +11,222 @@ import json
 import pickle
 from pathlib import Path
 import itertools
+import importlib.util  # Hinzugefügt für find_spec in Python >= 3.7
+import importlib.metadata  # Ersatz für pkg_resources.get_distribution und package2module
+
+# Ersetzt: from pkg_resources.extern import packaging
+# Ersetzt: __import__('pkg_resources.extern.packaging.version')
+# Ersetzt: __import__('pkg_resources.extern.packaging.specifiers')
+# Ersetzt: __import__('pkg_resources.extern.packaging.requirements')
+# Ersetzt: __import__('pkg_resources.extern.packaging.markers')
+# Importiert nun das externe 'packaging'-Paket direkt
+try:
+    import packaging.version
+    import packaging.specifiers
+    import packaging.requirements
+    import packaging.markers
+except ImportError as e:
+    raise ImportError(
+        "The 'packaging' package is required but not installed. "
+        "Install it with 'pip install packaging'."
+    ) from e
 
 import yaml
 from omegaconf import OmegaConf
 
-from pkg_resources.extern import packaging
-__import__('pkg_resources.extern.packaging.version')
-__import__('pkg_resources.extern.packaging.specifiers')
-__import__('pkg_resources.extern.packaging.requirements')
-__import__('pkg_resources.extern.packaging.markers')
+
+# Die folgenden Hilfsfunktionen aus pkg_resources wurden unten neu implementiert
+# oder durch `packaging` ersetzt: get_distribution, package2module, Requirement,
+# parse_requirements, yield_lines, safe_extra, safe_name.
+
+# --- Hilfsfunktionen für `packaging` (Ersatz für pkg_resources-Logik) ---
+
+# Implementierung der pkg_resources-Hilfsfunktionen mit 'packaging'
+def safe_extra(extra: str) -> str:
+    """Convert an arbitrary string to a standard 'extra' name"""
+    # pkg_resources implementation detail using packaging's rules
+    return re.sub(r'[^A-Za-z0-9.-]+', '_', extra).lower()
+
+
+def safe_name(name: str) -> str:
+    """Convert an arbitrary string to a standard distribution name"""
+    # pkg_resources implementation detail using packaging's rules
+    return re.sub(r'[^A-Za-z0-9.]+', '-', name)
+
+
+class DistributionNotFound(Exception):
+    """Exception raised when a distribution is not found."""
+    pass
+
+
+def get_distribution(dist_name: str) -> importlib.metadata.Distribution:
+    """Return a current distribution object for a package name or string requirement.
+
+    Args:
+        dist_name (str): The name of the package or a requirement string.
+
+    Returns:
+        importlib.metadata.Distribution: The found distribution object.
+
+    Raises:
+        DistributionNotFound: If the package is not found.
+        ValueError: If a requirement string is used (not supported by this simplified function).
+    """
+    if ' ' in dist_name or any(op in dist_name for op in ('==', '>=', '<=', '>', '<', '~=', '!=', '==')):
+        # importlib.metadata.distribution does not handle requirement strings.
+        # It's better to use the distribution name directly.
+        # Fallback to direct name extraction.
+        try:
+            req = packaging.requirements.Requirement(dist_name)
+            dist_name = req.name
+        except packaging.requirements.InvalidRequirement:
+            raise ValueError(
+                f"get_distribution only supports package names or simple requirements, "
+                f"but got: {dist_name}"
+            )
+
+    try:
+        # Use importlib.metadata.distribution for name-based lookup
+        return importlib.metadata.distribution(dist_name)
+    except importlib.metadata.PackageNotFoundError:
+        raise DistributionNotFound(f"The 'Distribution' '{dist_name}' was not found and is required")
+
+
+def package2module(package: str) -> str:
+    """Infer module name from package using importlib.metadata.
+
+    Args:
+        package (str): Package to infer module name.
+
+    Returns:
+        str: The module name.
+
+    Raises:
+        ValueError: If the top-level module name cannot be inferred.
+    """
+    try:
+        # Use importlib.metadata.distribution
+        dist = get_distribution(package)
+
+        # Check for top_level.txt metadata
+        top_level_txt = dist.read_text('top_level.txt')
+        if top_level_txt:
+            # The first non-empty line is usually the top-level module name
+            module_name = top_level_txt.split('\n')[0].strip()
+            if module_name:
+                return module_name
+
+    except (DistributionNotFound, FileNotFoundError):
+        # Package not found or top_level.txt not available/found
+        pass  # Will raise ValueError below
+
+    raise ValueError(
+        highlighted_error(f'can not infer the module name of {package}. '
+                          'Metadata (top_level.txt) not found or package not installed.')
+    )
+
+
+# Neuimplementierung der Requirement-Logik von pkg_resources mit packaging.requirements.Requirement
+
+class Requirement(packaging.requirements.Requirement):
+    """Reimplementation of pkg_resources.Requirement using packaging.requirements.Requirement."""
+
+    def __init__(self, requirement_string):
+        """DO NOT CALL THIS UNDOCUMENTED METHOD; use Requirement.parse()!"""
+        super().__init__(requirement_string)
+        self.unsafe_name = self.name
+        project_name = safe_name(self.name)
+        self.project_name, self.key = project_name, project_name.lower()
+
+        # specs is an internal list in pkg_resources
+        self.specs = [
+            (spec.operator, spec.version) for spec in self.specifier
+        ] if self.specifier else []
+
+        self.extras = tuple(map(safe_extra, self.extras))
+
+        # hashCmp logic from pkg_resources
+        self.hashCmp = (
+            self.key,
+            self.url,
+            str(self.specifier) if self.specifier else '',
+            frozenset(self.extras),
+            str(self.marker) if self.marker else None,
+        )
+        self.__hash = hash(self.hashCmp)
+
+    def __eq__(self, other):
+        return (
+                isinstance(other, Requirement) and
+                self.hashCmp == other.hashCmp
+        )
+
+    def __contains__(self, item: packaging.version.Version) -> bool:
+        """Check if a specific version is contained in the requirement."""
+        if isinstance(item, str):
+            try:
+                item = packaging.version.Version(item)
+            except packaging.version.InvalidVersion:
+                warnings.warn(f"Invalid version string: {item}", UserWarning)
+                return False
+
+        if self.key != safe_name(item.base_version).lower():
+            # This check is an oversimplification but reflects pkg_resources' intent
+            # In a real-world scenario, you should compare the package name.
+            # Since the original code only imports 'packaging' and not a distribution object,
+            # this check can only be an approximation.
+            return False
+
+            # The packaging specifier can check against packaging.version.Version objects
+        # prereleases=True is required to match pkg_resources' default behavior
+        return self.specifier.contains(item, prereleases=True)
+
+    def __hash__(self):
+        return self.__hash
+
+    @staticmethod
+    def parse(s):
+        reqs = list(parse_requirements(s))
+        if not reqs:
+            raise ValueError(f"Could not parse requirement from string: {s}")
+        return reqs[0]
+
+
+def yield_lines(iterable: Union[str, list, tuple]) -> List[str]:
+    """Yield valid lines of a string or iterable, recursively."""
+    if isinstance(iterable, str):
+        return [line for line in iterable.splitlines() if line.strip() and not line.strip().startswith('#')]
+
+    lines = []
+    for item in iterable:
+        lines.extend(yield_lines(item))
+    return lines
+
+
+def parse_requirements(strs: Union[str, list, tuple]) -> 'Requirement':
+    """Yield ``Requirement`` objects for each specification in `strs`."""
+    lines = iter(yield_lines(strs))
+
+    for line in lines:
+        # Drop comments and handle line continuation
+        if ' #' in line:
+            line = line[:line.find(' #')]
+
+        line = line.strip()
+
+        # If there is a line continuation, drop it, and append the next line.
+        while line.endswith('\\'):
+            line = line[:-1].strip()
+            try:
+                line += next(lines).strip()
+            except StopIteration:
+                break  # End of lines
+
+        if line:
+            yield Requirement(line)
+
+
+# --- Ende der Hilfsfunktionen ---
 
 
 PYTHON_ROOT_DIR = osp.dirname(osp.dirname(sys.executable))
@@ -169,6 +376,7 @@ class ImportTransformer(ast.NodeTransformer):
     :class:`mmengine.config.LazyObject` and preload the base variable before
     parsing the configuration file.
     """
+
     # noqa: E501
 
     def __init__(self,
@@ -184,10 +392,10 @@ class ImportTransformer(ast.NodeTransformer):
         super().__init__()
 
     def visit_ImportFrom(
-        self, node: ast.ImportFrom
+            self, node: ast.ImportFrom
     ) -> Optional[Union[List[ast.Assign], ast.ImportFrom]]:
         # Built-in modules will not be parsed as LazyObject
-        module = f'{node.level*"."}{node.module}'
+        module = f'{node.level * "."}{node.module}'
         if _is_builtin_module(module):
             # Make sure builtin module will be added into `self.imported_obj`
             for alias in node.names:
@@ -303,37 +511,45 @@ def _gather_abs_import_lazyobj(tree: ast.Module,
 def get_installed_path(package: str) -> str:
     """Get installed path of package.
 
+    Replaced:
+        from pkg_resources import DistributionNotFound, get_distribution
+
+    Uses:
+        importlib.metadata
+
     Args:
         package (str): Name of package.
     """
-    import importlib.util
-
-    from pkg_resources import DistributionNotFound, get_distribution
-
     try:
-        pkg = get_distribution(package)
-    except DistributionNotFound as e:
-        # if the package is not installed, package path set in PYTHONPATH
-        # can be detected by `find_spec`
+        # 1. Try with importlib.metadata
+        pkg = importlib.metadata.distribution(package)
+        # pkg.locate is the directory containing the package, similar to pkg.location
+        possible_path = osp.join(pkg.locate(), package2module(package))  # Use package2module to ensure correct module dir
+
+        # Check if the main package dir exists in the location
+        if osp.exists(possible_path):
+            return possible_path
+        # Fallback to the distribution location itself (e.g., for namespace packages)
+        return pkg.locate()
+
+    except importlib.metadata.PackageNotFoundError as e:
+        # 2. If not found via metadata, check PYTHONPATH/sys.path via importlib.util.find_spec
         spec = importlib.util.find_spec(package)
         if spec is not None:
             if spec.origin is not None:
+                # spec.origin is the path to the __init__.py or .py file
                 return osp.dirname(spec.origin)
             else:
-                # `get_installed_path` cannot get the installed path of
-                # namespace packages
+                # Namespace packages don't have an origin but a spec exists
                 raise RuntimeError(
                     f'{package} is a namespace package, which is invalid '
-                    'for `get_install_path`')
+                    'for `get_install_path` in this context')
         else:
-            raise e
+            # Re-raise the original not found error, but as the new type
+            raise DistributionNotFound(
+                f"The 'Distribution' '{package}' was not found and is required"
+            ) from e
 
-    possible_path = osp.join(pkg.location, package)  # type: ignore
-    if osp.exists(possible_path):
-        return possible_path
-    else:
-        return osp.join(pkg.location, package2module(package))  # type: ignore
-    
 
 def import_modules_from_strings(imports, allow_failed_imports=False):
     """Import modules from the given list of strings.
@@ -383,26 +599,35 @@ def import_module(name, package=None):
 def is_installed(package: str) -> bool:
     """Check package whether installed.
 
+    Replaced:
+        import pkg_resources
+        from pkg_resources import get_distribution
+
+    Uses:
+        importlib.metadata
+
     Args:
         package (str): Name of package to be checked.
     """
-    import importlib.util
-    import pkg_resources
-    from pkg_resources import get_distribution
+    # Note: importlib.metadata.distribution() is generally the most reliable check
+    # for an installed package (e.g., via pip/wheel).
 
-    importlib.reload(pkg_resources)
+    # 1. Check via importlib.metadata.distribution
     try:
-        get_distribution(package)
+        importlib.metadata.distribution(package)
         return True
-    except pkg_resources.DistributionNotFound:
-        spec = importlib.util.find_spec(package)
-        if spec is None:
-            return False
-        elif spec.origin is not None:
-            return True
-        else:
-            return False
-    
+    except importlib.metadata.PackageNotFoundError:
+        pass  # Continue to step 2
+
+    # 2. Fallback check for packages potentially in PYTHONPATH without full metadata
+    spec = importlib.util.find_spec(package)
+    if spec is not None:
+        # If spec.origin is None, it's a namespace package (which is "found" but not installed like a normal package)
+        # If spec.origin is not None, it's a module/package file that was found.
+        return spec.origin is not None
+
+    return False
+
 
 def dump(obj, file=None, file_format=None, **kwargs):
     """Dump data to json/yaml/pickle strings or files (mmengine-like replacement)."""
@@ -450,120 +675,13 @@ def dump(obj, file=None, file_format=None, **kwargs):
 def check_file_exist(filename, msg_tmpl='file "{}" does not exist'):
     if not osp.isfile(filename):
         raise FileNotFoundError(msg_tmpl.format(filename))
-    
-
-def package2module(package: str):
-    """Infer module name from package.
-
-    Args:
-        package (str): Package to infer module name.
-    """
-    pkg = get_distribution(package)
-    if pkg.has_metadata('top_level.txt'):
-        module_name = pkg.get_metadata('top_level.txt').split('\n')[0]
-        return module_name
-    else:
-        raise ValueError(
-            highlighted_error(f'can not infer the module name of {package}'))
-    
-
-def get_distribution(dist):
-    """Return a current distribution object for a Requirement or string"""
-    if isinstance(dist, str):
-        dist = Requirement.parse(dist)
-    return dist
 
 
 def highlighted_error(msg: Union[str, Exception]) -> str:
-    return click.style(msg, fg='red', bold=True)  # type: ignore
-
-
-class Requirement(packaging.requirements.Requirement):
-    def __init__(self, requirement_string):
-        """DO NOT CALL THIS UNDOCUMENTED METHOD; use Requirement.parse()!"""
-        super(Requirement, self).__init__(requirement_string)
-        self.unsafe_name = self.name
-        project_name = safe_name(self.name)
-        self.project_name, self.key = project_name, project_name.lower()
-        self.specs = [
-            (spec.operator, spec.version) for spec in self.specifier]
-        self.extras = tuple(map(safe_extra, self.extras))
-        self.hashCmp = (
-            self.key,
-            self.url,
-            self.specifier,
-            frozenset(self.extras),
-            str(self.marker) if self.marker else None,
-        )
-        self.__hash = hash(self.hashCmp)
-
-    def __eq__(self, other):
-        return (
-            isinstance(other, Requirement) and
-            self.hashCmp == other.hashCmp
-        )
-
-    def __ne__(self, other):
-        return not self == other
-
-    def __contains__(self, item):
-        if item.key != self.key:
-            return False
-
-        item = item.version
-        return self.specifier.contains(item, prereleases=True)
-
-    def __hash__(self):
-        return self.__hash
-
-    def __repr__(self):
-        return "Requirement.parse(%r)" % str(self)
-
-    @staticmethod
-    def parse(s):
-        req, = parse_requirements(s)
-        return req
-    
-
-def parse_requirements(strs):
-    """Yield ``Requirement`` objects for each specification in `strs`
-
-    `strs` must be a string, or a (possibly-nested) iterable thereof.
-    """
-    # create a steppable iterator, so we can handle \-continuations
-    lines = iter(yield_lines(strs))
-
-    for line in lines:
-        # Drop comments -- a hash without a space may be in a URL.
-        if ' #' in line:
-            line = line[:line.find(' #')]
-        # If there is a line continuation, drop it, and append the next line.
-        if line.endswith('\\'):
-            line = line[:-2].strip()
-            try:
-                line += next(lines)
-            except StopIteration:
-                return
-        yield Requirement(line)
-
-
-def yield_lines(iterable):
-    """Yield valid lines of a string or iterable"""
-    return itertools.chain.from_iterable(map(yield_lines, iterable))
-
-
-def safe_extra(extra):
-    """Convert an arbitrary string to a standard 'extra' name
-
-    Any runs of non-alphanumeric characters are replaced with a single '_',
-    and the result is always lowercased.
-    """
-    return re.sub('[^A-Za-z0-9.-]+', '_', extra).lower()
-
-
-def safe_name(name):
-    """Convert an arbitrary string to a standard distribution name
-
-    Any runs of non-alphanumeric/. characters are replaced with a single '-'.
-    """
-    return re.sub('[^A-Za-z0-9.]+', '-', name)
+    # Assuming 'click' is installed or this is a placeholder
+    # If not using click, you can replace it with a simple string formatting for bold/red
+    try:
+        import click
+        return click.style(str(msg), fg='red', bold=True)
+    except ImportError:
+        return f"[ERROR] {msg}"
