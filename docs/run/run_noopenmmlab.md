@@ -38,7 +38,7 @@ Images can be imported via PIL and then converted into RGB:
 
 ```python
 from PIL import Image
-image = Image.open(image-path).convert("RGB")
+image = Image.open(image_path).convert("RGB")
 ```
 
 After that we can transform the image into a torch-Tensor and calculate Mean and STD:
