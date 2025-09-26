@@ -71,8 +71,7 @@ Visualize the results (this is for cityscapes classes):
 
 ```python
 import numpy as np
-import matplotlib.pyplot as plt
-segmentation_map = np.argmax(model_output.cpu().numpy(), axis=0)
+segmentation_map = np.argmax(output.detach().cpu().numpy(), axis=0)
 # Official Cityscapes colors for train IDs 0-18
 cityscapes_colors = np.array([
     [128,  64, 128], # 0: road
@@ -97,7 +96,10 @@ cityscapes_colors = np.array([
 ], dtype=np.uint8)
 
 color_image = cityscapes_colors[segmentation_map]
+```
 
+```python
+import matplotlib.pyplot as plt
 plt.figure(figsize=(6, 6))
 plt.imshow(color_image)
 plt.title("Semantic Segmentation Visualization")
@@ -105,6 +107,7 @@ plt.axis('off')
 plt.show()
 ```
 
+> Note: You have to install matplotlib for visualization.
 
 
 ## Token-Merge Setting
