@@ -7,9 +7,9 @@ This document explains how to use a pre-trained SegFormer++ model and its associ
 Before running the script, ensure you have PyTorch installed. You also need to install the following dependencies, which are required by the model and its entry points:
 Bash
 
-
+```bash
 pip install tomesd omegaconf numpy rich yapf addict tqdm packaging torchvision
-
+```
 ## How It Works
 
 The provided Python script demonstrates a full workflow, from loading the model and transformations to running inference on a dummy image.
