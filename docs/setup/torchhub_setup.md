@@ -41,7 +41,6 @@ model.eval()  # Set the model to evaluation mode
 ## Step 2: Loading Data Transformations
 
 The data_transforms entry point returns a torchvision.transforms.Compose object, which encapsulates the standard preprocessing steps required by the model (resizing and normalization).
-Python
 
 ```python
 # Load the data transformations
@@ -54,7 +53,6 @@ transform = torch.hub.load(
 ## Step 3: Preparing the Image and Running Inference
 
 After loading the model and transformations, you can apply them to an input image. The script creates a dummy image for this example, but in a real-world scenario, you would load an image from your file system.
-Python
 
 ```python
 from PIL import Image
