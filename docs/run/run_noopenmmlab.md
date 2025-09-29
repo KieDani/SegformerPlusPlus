@@ -56,7 +56,7 @@ std = [0.229, 0.224, 0.225]  # ImageNet std
 Now the Tensor of the Image can be transformed:
 
 ```python
-device = 'cuda:0'
+device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 resolution = (1024, 1024)  # image_size as wished
 transform = T.Compose([
 T.Resize(resolution),
