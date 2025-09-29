@@ -108,6 +108,7 @@ plt.imshow(color_image)
 plt.title("Semantic Segmentation Visualization")
 plt.axis('off')
 plt.show()
+plt.savefig("segmentation_output.png") # When you use a System without GUI
 ```
 
 > Note: You have to install matplotlib for visualization.
