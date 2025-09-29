@@ -10,6 +10,10 @@ Paper: [Segformer++: Efficient Token-Merging Strategies for High-Resolution Sema
 
 Utilizing transformer architectures for semantic segmentation of high-resolution images is hindered by the attention's quadratic computational complexity in the number of tokens. A solution to this challenge involves decreasing the number of tokens through token merging, which has exhibited remarkable enhancements in inference speed, training efficiency, and memory utilization for image classification tasks. In this paper, we explore various token merging strategies within the framework of the SegFormer architecture and perform experiments on multiple semantic segmentation and human pose estimation datasets. Notably, without model re-training, we, for example, achieve an inference acceleration of 61% on the Cityscapes dataset while maintaining the mIoU performance. Consequently, this paper facilitates the deployment of transformer-based architectures on resource-constrained devices and in real-time applications.
 
+**Update:** It is now possible to load the model via torch.hub. See [here](docs/setup/torchhub_setup.md).
+
+**Update:** It is now possible to run the model **without OpenMMLab dependencies**, enabling users to utilize the SegFormerPlusPlus architecture without installing the full OpenMMLab framework.
+
 ## Results and Models
 
 Memory refers to the VRAM requirements during the training process.
@@ -66,11 +70,16 @@ The weights of the Segformer (Original) model were used to get the inference res
 
 ## Usage
 
-To use our models for semantic segmentation or 2D human pose estimation, please follow the installation instructions for MMSegmentation and MMPose respectively, which can be found in the documentation of the respective repositories.
+Easy usage:
+- [Use the SegFormer++ via TorchHub](docs/setup/torchhub_setup.md)
+- [Use the SegFormer++ without OpenMMLab](docs/setup/noopenmmlab_setup.md)
 
+Legacy Variants. To use our models for semantic segmentation or 2D human pose estimation, please follow the installation instructions for MMSegmentation and MMPose respectively, which can be found in the documentation of the respective repositories.
 - [Use the SegFormer++ with MMSegmentation](docs/setup/mmseg_setup.md)
 - [Use the SegFormer++ with MMPose](docs/setup/mmpose_setup.md)
 - [Use the SegFormer++ without MMSegmentation/MMPose](docs/setup/mmeng_setup.md)
+
+Explanation of the different token merging strategies:
 - [Token Merging Settings](docs/run/token_merging.md)
 
 ## Citation
