@@ -40,41 +40,51 @@ Images can be imported via PIL and then converted into RGB:
 
 ```python
 from PIL import Image
-image_path = "path_to_your_image.jpg"
+image_path = "path_to_your_image.png"
 image = Image.open(image_path).convert("RGB")
 ```
 
-After that we can transform the image into a torch-Tensor and calculate Mean and STD:
+After that, convert the image into a torch tensor:
 
 ```python
-import torchvision.transforms as T
-img_tensor = T.ToTensor()(image)
-mean = [0.485, 0.456, 0.406]  # ImageNet mean
-std = [0.229, 0.224, 0.225]  # ImageNet std
-```
+import torch
+import numpy as np
 
-Now the Tensor of the Image can be transformed:
-
-```python
+img_tensor = torch.from_numpy(np.array(image) / 255.0)
+img_tensor = img_tensor.permute(2, 0, 1).float().unsqueeze(0)  # (1, C, H, W)
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-resolution = (1024, 1024)  # image_size as wished
-transform = T.Compose([
-T.Resize(resolution),
-T.ToTensor(),
-T.Normalize(mean=mean, std=std)
-])
-img_tensor = transform(image).unsqueeze(0).to(device)
+img_tensor = img_tensor.to(device)
 ```
 
+Now we can load the model:
+
 ```python
-output = model(img_tensor).squeeze(0)
+from segformer_plusplus.build_model import create_model
+
+out_channels = 19
+model = create_model(
+    backbone='b5', 
+    tome_strategy='bsm_hq', 
+    out_channels=out_channels, 
+    pretrained=False
+).to(device)
+
+model.load_state_dict(torch.load("path_to_checkpoint", map_location=device))
+model.eval()
+```
+
+Inference:
+```python
+with torch.no_grad():
+    output = model(img_tensor)
+    segmentation_map = torch.argmax(output, dim=1).squeeze().cpu().numpy()
 ```
 
 Visualize the results (this is for cityscapes classes):
 
 ```python
 import numpy as np
-segmentation_map = np.argmax(output.detach().cpu().numpy(), axis=0)
+
 # Official Cityscapes colors for train IDs 0-18
 cityscapes_colors = np.array([
     [128,  64, 128], # 0: road
@@ -98,17 +108,24 @@ cityscapes_colors = np.array([
     [119,  11,  32], # 18: bicycle
 ], dtype=np.uint8)
 
-color_image = cityscapes_colors[segmentation_map]
+# Map each class to its corresponding color
+height, width = segmentation_map.shape
+color_image = np.zeros((height, width, 3), dtype=np.uint8)
+for class_index in range(len(cityscapes_colors)):
+    color_image[segmentation_map == class_index] = cityscapes_colors[class_index]
 ```
 
+Display and save output:
 ```python
 import matplotlib.pyplot as plt
+
 plt.figure(figsize=(6, 6))
 plt.imshow(color_image)
 plt.title("Semantic Segmentation Visualization")
 plt.axis('off')
 plt.show()
-plt.savefig("segmentation_output.png") # When you use a System without GUI
+# Save the colorized output as an image - important when using a System without GUI
+plt.imsave("segmentation_output.png", color_image)
 ```
 
 > Note: You have to install matplotlib for visualization.
