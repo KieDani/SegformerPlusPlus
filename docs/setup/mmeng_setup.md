@@ -28,7 +28,8 @@ There might be installation troubles with openmim, mmengine, and mmcv for new py
 In this case, try the following alternative for step 1:
 ```shell
 pip install torch torchvision numpy
-pip install mmcv-full==1.2.7
-pip install mmcv
+pip install wheel==0.45.1
+pip install mmcv==2.2.0
 ```
 If it is still not working, make sure to use a pip virtual environment (python -m venv "name of the environment"), not a conda environment.
+
