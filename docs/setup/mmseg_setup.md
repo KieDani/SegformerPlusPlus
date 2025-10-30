@@ -7,6 +7,7 @@
 **Step 1.** Install [MMCV](https://github.com/open-mmlab/mmcv) using [MIM](https://github.com/open-mmlab/mim).
 
 ```shell
+pip install wheel==0.45.1
 pip install -U openmim
 mim install mmengine
 mim install "mmcv==2.0.0"
