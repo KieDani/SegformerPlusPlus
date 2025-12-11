@@ -9,6 +9,7 @@ Before running the script, ensure you have PyTorch installed. You also need to i
 ```bash
 pip install tomesd omegaconf numpy rich yapf addict tqdm packaging torchvision
 ```
+Note: You need Python version 3.9 or newer.
 ## How It Works
 
 The provided Python script demonstrates a full workflow, from loading the model and transformations to running inference on a dummy image.
